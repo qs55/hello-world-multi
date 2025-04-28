@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     environment {
-        // Updated to reflect the new Docker image name
-        DOCKER_IMAGE = "hello-world-multi"
-        // New container name
+        // Docker image name (with your Docker Hub username)
+        DOCKER_IMAGE = "qaiser55/hello-world-multi"
+        // Container name for local deployment
         CONTAINER_NAME = "hello-world-container"
-        // Versioning (you can change this to use another versioning scheme if you want)
+        // Versioning based on Jenkins build number
         VERSION = "v1.0.${BUILD_NUMBER}"  // Use Jenkins build number as version
         BRANCH_TAG = "${env.BRANCH_NAME}"  // Git branch name (e.g., 'master', 'develop')
     }
@@ -24,10 +24,15 @@ pipeline {
 
         stage('Push to Docker Hub') {
             steps {
-                withDockerRegistry(credentialsId: 'dockerhub', url: '') {
+                // Securely login to Docker Hub using stored Jenkins credentials
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     script {
+                        // Log in to Docker Hub using the access token (password via stdin for security)
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+
                         // Tag the image with branch name and version before pushing
                         def imageTag = "${DOCKER_IMAGE}:${BRANCH_TAG}-${VERSION}"
+
                         // Push the image to Docker Hub with the new tag
                         docker.image(imageTag).push()
                     }
@@ -47,7 +52,7 @@ pipeline {
                     sh "docker rm ${CONTAINER_NAME} || true"
 
                     // Run the Docker container with the newly tagged image
-                    sh "docker run -d --name ${CONTAINER_NAME} -p 5000:5000 ${imageTag}"
+                    sh "docker run -d --name ${CONTAINER_NAME} -p 6000:5000 ${imageTag}"
                 }
             }
         }
