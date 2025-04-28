@@ -2,14 +2,22 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "qaiser55/hello-flask-app"
+        // Updated to reflect the new Docker image name
+        DOCKER_IMAGE = "hello-world-multi"
+        // New container name
+        CONTAINER_NAME = "hello-world-container"
+        // Versioning (you can change this to use another versioning scheme if you want)
+        VERSION = "v1.0.${BUILD_NUMBER}"  // Use Jenkins build number as version
+        BRANCH_TAG = "${env.BRANCH_NAME}"  // Git branch name (e.g., 'master', 'develop')
     }
 
     stages {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build(DOCKER_IMAGE)
+                    // Build the Docker image and tag it with the branch name and version
+                    def imageTag = "${DOCKER_IMAGE}:${BRANCH_TAG}-${VERSION}"
+                    docker.build(imageTag)
                 }
             }
         }
@@ -18,7 +26,10 @@ pipeline {
             steps {
                 withDockerRegistry(credentialsId: 'dockerhub', url: '') {
                     script {
-                        docker.image(DOCKER_IMAGE).push()
+                        // Tag the image with branch name and version before pushing
+                        def imageTag = "${DOCKER_IMAGE}:${BRANCH_TAG}-${VERSION}"
+                        // Push the image to Docker Hub with the new tag
+                        docker.image(imageTag).push()
                     }
                 }
             }
@@ -27,15 +38,16 @@ pipeline {
         stage('Deploy to Local Docker') {
             steps {
                 script {
-                    // Pull the latest image from Docker Hub
-                    sh "docker pull ${DOCKER_IMAGE}"
+                    // Pull the latest image from Docker Hub based on branch and version
+                    def imageTag = "${DOCKER_IMAGE}:${BRANCH_TAG}-${VERSION}"
+                    sh "docker pull ${imageTag}"
 
                     // Stop and remove any existing container with the same name (optional)
-                    sh "docker stop my-flask-app || true"
-                    sh "docker rm my-flask-app || true"
+                    sh "docker stop ${CONTAINER_NAME} || true"
+                    sh "docker rm ${CONTAINER_NAME} || true"
 
-                    // Run the Docker container with the new image
-                    sh "docker run -d --name my-flask-app -p 5000:5000 ${DOCKER_IMAGE}"
+                    // Run the Docker container with the newly tagged image
+                    sh "docker run -d --name ${CONTAINER_NAME} -p 5000:5000 ${imageTag}"
                 }
             }
         }
@@ -43,6 +55,7 @@ pipeline {
 
     post {
         always {
+            // Clean up the workspace after the pipeline completes
             cleanWs()
         }
     }
