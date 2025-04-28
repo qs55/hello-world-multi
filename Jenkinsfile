@@ -5,7 +5,7 @@ pipeline {
         // Docker image name (with your Docker Hub username)
         DOCKER_IMAGE = "qaiser55/hello-world-multi"
         // Container name for local deployment
-        CONTAINER_NAME = "hello-world-container"
+        CONTAINER_NAME = "hello-world-container-7000"
         // Versioning based on Jenkins build number
         VERSION = "v1.0.${BUILD_NUMBER}"  // Use Jenkins build number as version
         BRANCH_TAG = "${env.BRANCH_NAME}"  // Git branch name (e.g., 'master', 'develop')
@@ -52,7 +52,7 @@ pipeline {
                     sh "docker rm ${CONTAINER_NAME} || true"
 
                     // Run the Docker container with the newly tagged image
-                    sh "docker run -d --name ${CONTAINER_NAME} -p 6000:5000 ${imageTag}"
+                    sh "docker run -d --name ${CONTAINER_NAME} -p 7000:5000 ${imageTag}"
                 }
             }
         }
